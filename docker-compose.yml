@@ -1,0 +1,47 @@
+
+# version: '3'
+
+services:
+  traefik:
+    image: traefik:v3.1 # Check docker hub
+    container_name: traefik-proxy
+
+    ports:
+      # HTTP routing entrypoint on the http port.
+      - "80:80"
+      # The dashboard that traefik sets up
+      - "8080:8080"
+
+      - "443:443"
+    
+    volumes:
+      # Need to see why exactly the docker socket is shared with traefik/if that's safe
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+    
+    # Need to look into restart config
+    restart: unless-stopped
+
+  node-app:
+    build:
+      context: https://Alanas-J:${GITHUB_TOKEN}@github.com/Alanas-J/personal-homepage-node-server.git
+      dockerfile: Dockerfile
+    container_name: node-app
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}  # Pass in the token as an environment variable
+    
+    labels:
+      - com.host.description=label
+      - traefik.enable=true
+      - traefik.http.routers.node-app-http-router.rule=PathPrefix(`/node`)
+      - traefik.http.routers.node-app-http-router.entrypoints=web
+
+      - traefik.http.middlewares.prefix-stripper.stripprefix.prefixes=/node
+      - "traefik.http.routers.node-app-http-router.middlewares=prefix-stripper"
+
+# If explicit container network management is needed:
+# Would need to be defined in each container subscribing aswell
+
+# networks:
+#   network-name:
+#     external: true -- If this is an existing network
