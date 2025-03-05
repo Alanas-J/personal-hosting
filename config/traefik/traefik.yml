@@ -10,13 +10,28 @@ api:
   insecure: true
   
 entryPoints:
-  web: 
-    address: :80
-    
-  websecure: 
-    address: :443
+  http-entry:
+    address: ":80"
+    http:
+     redirections:
+       entryPoint:
+         to: https-entry
+         scheme: https
+  https-entry:
+    address: ":443"
 
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
+
+certificatesResolvers:
+  raspiresolver:
+    acme:
+      storage: /var/traefik/certs/lets-encrypt-cert.json
+      tlsChallenge: {}
+      # Kept on timing out
+      # dnsChallenge:
+      #   provider: route53
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory # Testing API
