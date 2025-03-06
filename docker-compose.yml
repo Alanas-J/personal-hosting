@@ -13,12 +13,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock # Traefik listens on the docker socket to register containers.
       - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./config/certs:/var/traefik/certs/:rw # Traefik will autogenerate a TLS cert into here.
-    environment:
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_HOSTED_ZONE_ID=${AWS_HOSTED_ZONE_ID}
-      - AWS_REGION=eu-west-1
-      - PERSONAL_EMAIL=${PERSONAL_EMAIL}
     restart: unless-stopped
 
   node-app:
@@ -26,8 +20,6 @@ services:
       context: https://Alanas-J:${GITHUB_TOKEN}@github.com/Alanas-J/personal-homepage-node-server.git
       dockerfile: Dockerfile
     container_name: node-app
-    # depends_on:
-    #   - traefik
     labels:
       - traefik.enable=true
       - traefik.http.middlewares.prefix-stripper.stripprefix.prefixes=/node
@@ -43,3 +35,14 @@ services:
       - traefik.http.routers.node-https-router.middlewares=prefix-stripper
     restart: unless-stopped
 
+  dns-sync:
+    build:
+      context: ./containers/route53_dns_sync
+      dockerfile: Dockerfile
+    container_name: route53-dns-sync
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_HOSTED_ZONE_ID=${AWS_HOSTED_ZONE_ID}
+      - DOMAIN_NAME=raspi.alanas-j.site.
+    restart: unless-stopped
