@@ -46,3 +46,22 @@ services:
       - AWS_HOSTED_ZONE_ID=${AWS_HOSTED_ZONE_ID}
       - DOMAIN_NAME=raspi.alanas-j.site.
     restart: unless-stopped
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      # DNS Ports
+      - "53:53/tcp"
+      - "53:53/udp"
+      # Pihole hosts a site for managing pihole.
+      - "80:8081/tcp"
+      - "443:4443/tcp"
+    environment:
+      TZ: 'Europe/Dublin'
+      FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD}
+      FTLCONF_dns_listeningMode: 'all' # If using Docker's default `bridge` network setting the dns listening mode should be set to 'all'
+    volumes:
+      # For persisting Pi-hole's databases and common configuration file
+      - './data/etc-pihole:/etc/pihole'
+    restart: unless-stopped

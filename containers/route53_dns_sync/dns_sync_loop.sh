@@ -5,13 +5,13 @@ set -e  # Exit/crash on any command failure
 AWS_HOSTED_ZONE_ID=$AWS_HOSTED_ZONE_ID
 DOMAIN_NAME=$DOMAIN_NAME
 TYPE="A"
-TTL="${TTL:-300}"
+TTL="300"
 INIT_SLEEP_TIME="${INIT_SLEEP_TIME:-120}"
 LOOP_SLEEP_TIME="${LOOP_SLEEP_TIME:-300}"
 
 
 echo "DNS Loop Script Start: $(date)"
-echo "Sleeping for: ${INIT_SLEEP_TIME}s before starting to prevent crash loop..."
+echo "Sleeping for: ${INIT_SLEEP_TIME}s before starting to reduce crash loop speed if occurs..."
 sleep $INIT_SLEEP_TIME
 
 
@@ -29,7 +29,7 @@ while true; do
         if [ "$CURRENT_IP" != "$ROUTE_53_IP" ]; then
             echo "Route 53 IP record is out of sync, setting..."
 
-            JSON_PAYLOAD= cat <<- HereDoc
+            JSON_PAYLOAD=$(cat <<- HereDoc
                 {
                     "Comment":"Updated From DDNS Shell Script",
                     "Changes":[
@@ -38,10 +38,10 @@ while true; do
                             "ResourceRecordSet": {
                                 "ResourceRecords": [
                                     {
-                                        "Value":"$PUBLIC_IP"
+                                        "Value":"$CURRENT_IP"
                                     }
                                 ],
-                                "Name":"$NAME",
+                                "Name":"$DOMAIN_NAME",
                                 "Type":"$TYPE",
                                 "TTL":$TTL 
                             }
@@ -49,6 +49,7 @@ while true; do
                     ]
                 }
 HereDoc
+)
 
             aws route53 change-resource-record-sets --hosted-zone-id $AWS_HOSTED_ZONE_ID --change-batch "$JSON_PAYLOAD"
             echo "Change requested sucesfully."
