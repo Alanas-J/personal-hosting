@@ -7,17 +7,26 @@ log:
 
 api:
   dashboard: true
-  insecure: true
   
 entryPoints:
-  http-entry:
+  internet-http-entry:
+    address: ":20080"
+    http:
+     redirections:
+       entryPoint:
+         to: https-entry
+         scheme: https
+  internet-https-entry:
+    address: ":200443"
+
+  local-http-entry:
     address: ":80"
     http:
      redirections:
        entryPoint:
          to: https-entry
          scheme: https
-  https-entry:
+  local-https-entry:
     address: ":443"
 
 providers:
