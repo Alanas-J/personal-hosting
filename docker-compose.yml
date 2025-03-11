@@ -8,21 +8,24 @@ services:
       # I've moved these into far ports are the home router can handle port mapping.
       # For external / internet connections.
       - "20080:20080"
-      - "200443:200443"
+      - "20443:20443"
       # Local HTTP/S routing entrypoints.
       # It's dangerous to use the exposed ports to access local services.
       - "80:80"
       - "443:443"
+      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # Traefik listens on the docker socket to register containers.
       - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/traefik/traefik_dynamic_conf.yml:/etc/traefik/traefik_dynamic_conf.yml:ro
       - ./config/certs:/var/traefik/certs/:rw # Traefik will autogenerate a TLS cert into here.
     labels:
-    # Traefik Dashboard + API over HTTPS and passworded.
-      - traefik.http.routers.dashboard.rule=Host(`traefik.home`)
-      - traefik.http.routers.dashboard.service=api@internal
-      - traefik.http.routers.dashboard.middlewares=auth
-      - traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_USER}:${TRAEFIK_PASSWORD_HASH}
+      # Traefik Dashboard + API over HTTPS and passworded.
+      - traefik.http.routers.traefik-dashboard.entrypoints=local-https-entry
+      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.home`)
+      - traefik.http.routers.traefik-dashboard.service=dashboard@internal
+      #- traefik.http.routers.traefik-dashboard.middlewares=traefik-auth
+      #- traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_USER}:${TRAEFIK_PASSWORD_HASH}
     restart: unless-stopped
 
   dns-sync:
@@ -60,10 +63,10 @@ services:
       # Local HTTP
       - traefik.http.routers.local-pihole-http-router.entrypoints=local-http-entry
       - traefik.http.routers.local-pihole-http-router.rule=Host(`pihole.home`)
-      # Local HTTPS
-      - traefik.http.routers.local-pihole-https-router.tls.passthrough=true # For now having Pihole handle its own SSL
-      - traefik.http.routers.local-pihole-https-router.entrypoints=local-https-entry
-      - traefik.http.routers.local-pihole-https-router.rule=Host(`pihole.home`)
+      - traefik.http.routers.local-pihole-http-router.service=pihole-http
+      - traefik.http.services.pihole-http.loadbalancer.server.port=80
+      # Local HTTPS (passthrough needs to use a tcp router + this is defined in yml config.)
+      - traefik.tcp.services.pihole-https.loadbalancer.server.port=443
     restart: unless-stopped
 
   node-app:
@@ -85,8 +88,8 @@ services:
       - traefik.http.routers.local-node-https-router.middlewares=prefix-stripper
       # Internet HTTP
       - traefik.http.routers.internet-node-http-router.entrypoints=internet-http-entry
-      - traefik.http.routers.node-http-router.rule=PathPrefix(`/node`)
-      - traefik.http.routers.node-http-router.middlewares=prefix-stripper
+      - traefik.http.routers.internet-node-http-router.rule=PathPrefix(`/node`)
+      - traefik.http.routers.internet-node-http-router.middlewares=prefix-stripper
       # Internet HTTPS
       - traefik.http.routers.internet-node-https-router.tls=true
       - traefik.http.routers.internet-node-https-router.tls.certresolver=raspiresolver

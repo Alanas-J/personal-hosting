@@ -7,6 +7,7 @@ log:
 
 api:
   dashboard: true
+  insecure: true
   
 entryPoints:
   internet-http-entry:
@@ -17,7 +18,7 @@ entryPoints:
          to: https-entry
          scheme: https
   internet-https-entry:
-    address: ":200443"
+    address: ":20443"
 
   local-http-entry:
     address: ":80"
@@ -33,6 +34,8 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
+  file:
+    filename: "/etc/traefik/traefik_dynamic_conf.yml"
 
 certificatesResolvers:
   raspiresolver:

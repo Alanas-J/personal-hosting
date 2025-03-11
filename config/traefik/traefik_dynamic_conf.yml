@@ -1,0 +1,12 @@
+
+# Docker labels don't register passthrough config in the current version (3.3.4)
+# so it's moved into here
+tcp:
+  routers:
+    local-pihole-https-router:
+      entryPoints:
+        - local-https-entry
+      rule: "HostSNI(`pihole.home`)"
+      service: pihole-https@docker
+      tls:
+        passthrough: true
