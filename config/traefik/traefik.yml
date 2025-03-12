@@ -15,7 +15,7 @@ entryPoints:
     http:
      redirections:
        entryPoint:
-         to: https-entry
+         to: internet-https-entry
          scheme: https
   internet-https-entry:
     address: ":20443"
@@ -25,7 +25,7 @@ entryPoints:
     http:
      redirections:
        entryPoint:
-         to: https-entry
+         to: local-https-entry
          scheme: https
   local-https-entry:
     address: ":443"
