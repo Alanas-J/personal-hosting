@@ -5,9 +5,7 @@ global:
 log:
   level: DEBUG
 
-api:
-  dashboard: true
-  insecure: true
+api: {}
   
 entryPoints:
   internet-http-entry:

@@ -20,12 +20,19 @@ services:
       - ./config/traefik/traefik_dynamic_conf.yml:/etc/traefik/traefik_dynamic_conf.yml:ro
       - ./config/certs:/var/traefik/certs/:rw # Traefik will autogenerate a TLS cert into here.
     labels:
-      # Traefik Dashboard + API over HTTPS and passworded.
+      - traefik.enable=true
+      - traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_USER}:${TRAEFIK_PASSWORD_HASH}
+       # Traefik Dashboard + API over local HTTP and passworded.
+      - traefik.http.routers.dashboard.rule=Host(`traefik.home`)&&(PathPrefix(`/api`)||PathPrefix(`/dashboard`))
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.entrypoints=local-http-entry
+      - traefik.http.routers.traefik-dashboard.middlewares=traefik-auth
+      # Traefik Dashboard + API over local HTTPS and passworded.
+      - traefik.http.routers.traefik-dashboard.tls=true
       - traefik.http.routers.traefik-dashboard.entrypoints=local-https-entry
-      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.home`)
-      - traefik.http.routers.traefik-dashboard.service=dashboard@internal
-      #- traefik.http.routers.traefik-dashboard.middlewares=traefik-auth
-      #- traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_USER}:${TRAEFIK_PASSWORD_HASH}
+      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.home`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      - traefik.http.routers.traefik-dashboard.service=api@internal
+      - traefik.http.routers.traefik-dashboard.middlewares=traefik-auth
     restart: unless-stopped
 
   dns-sync:
