@@ -1,6 +1,11 @@
 
 networks:
-  loki:
+  loki: {}
+
+# Persistent volumes outside of containers managed by docker engine.
+volumes:
+  grafana__dashboard_storage: {}
+
 services:
   
   node-app:
@@ -35,6 +40,7 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=alertingSimplifiedRouting,alertingQueryAndExpressionsStepMode
     volumes:
      - ./config/grafana/grafana.ini:/usr/local/etc/grafana/grafana.ini:ro
+     - grafana_dashboard_storage:/var/lib/grafana
     entrypoint:
       - sh
       - -euc
