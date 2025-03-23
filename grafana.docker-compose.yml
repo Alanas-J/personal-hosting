@@ -33,6 +33,8 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_FEATURE_TOGGLES_ENABLE=alertingSimplifiedRouting,alertingQueryAndExpressionsStepMode
+    volumes:
+     - ./config/grafana/grafana.ini:/usr/local/etc/grafana/grafana.ini:ro
     entrypoint:
       - sh
       - -euc
