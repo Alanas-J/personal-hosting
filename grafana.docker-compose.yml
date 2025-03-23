@@ -1,6 +1,6 @@
 
 networks:
-  loki: {}
+  grafana: {}
 
 # Persistent volumes outside of containers managed by docker engine.
 volumes:
@@ -21,7 +21,7 @@ services:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
     networks:
-      - loki
+      - grafana
 
   promtail:
     image: grafana/promtail:latest
@@ -29,7 +29,7 @@ services:
     #  - /var/log:/var/log
     command: -config.file=/etc/promtail/config.yml
     networks:
-      - loki
+      - grafana
 
   grafana:
     environment:
@@ -45,4 +45,4 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - loki
+      - grafana
