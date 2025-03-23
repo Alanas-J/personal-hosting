@@ -4,7 +4,7 @@ networks:
 
 # Persistent volumes outside of containers managed by docker engine.
 volumes:
-  grafana__dashboard_storage: {}
+  grafana_dashboard_storage: {}
 
 services:
   
@@ -14,7 +14,6 @@ services:
       dockerfile: Dockerfile
     container_name: node-app
     restart: unless-stopped
-
 
   loki:
     image: grafana/loki:latest
@@ -40,26 +39,8 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=alertingSimplifiedRouting,alertingQueryAndExpressionsStepMode
     volumes:
      - ./config/grafana/grafana.ini:/usr/local/etc/grafana/grafana.ini:ro
+     - ./config/grafana/grafana_data_sources.yml:/etc/grafana/provisioning/datasources/ds.yaml:ro
      - grafana_dashboard_storage:/var/lib/grafana
-    entrypoint:
-      - sh
-      - -euc
-      - |
-        mkdir -p /etc/grafana/provisioning/datasources
-        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
-        apiVersion: 1
-        datasources:
-        - name: Loki
-          type: loki
-          access: proxy 
-          orgId: 1
-          url: http://loki:3100
-          basicAuth: false
-          isDefault: true
-          version: 1
-          editable: false
-        EOF
-        /run.sh
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
