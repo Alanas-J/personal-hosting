@@ -5,9 +5,9 @@ networks:
 # Persistent volumes outside of containers managed by docker engine.
 volumes:
   grafana_dashboard_storage: {}
+  loki_storage: {}
 
 services:
-  
   node-app:
     build:
       context: https://Alanas-J:${GITHUB_TOKEN}@github.com/Alanas-J/personal-homepage-node-server.git#main
@@ -18,8 +18,11 @@ services:
   loki:
     image: grafana/loki:latest
     ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
+      - "3100:3100" # I'll need to remove port exposure or implement mTLS.
+    command: -config.file=/etc/loki/config.yaml
+    volumes:
+      - loki_storage:/loki
+      - ./config/grafana/loki-config.yml:/etc/loki/config.yaml:ro
     networks:
       - grafana
 
@@ -39,10 +42,10 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=alertingSimplifiedRouting,alertingQueryAndExpressionsStepMode
     volumes:
      - ./config/grafana/grafana.ini:/usr/local/etc/grafana/grafana.ini:ro
-     - ./config/grafana/grafana_data_sources.yml:/etc/grafana/provisioning/datasources/ds.yaml:ro
+     - ./config/grafana/grafana-data-sources.yml:/etc/grafana/provisioning/datasources/ds.yaml:ro
      - grafana_dashboard_storage:/var/lib/grafana
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - "3000:3000"  # Will need to either enable TLS or disable / route via traefik.
     networks:
       - grafana
