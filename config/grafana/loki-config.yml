@@ -20,6 +20,12 @@ storage_config:
         active_index_directory: /loki/index
         cache_location: /loki/index_cache
 
+common:
+  path_prefix: /loki
+  ring:
+    kvstore:
+      store: inmemory
+
 compactor:
   working_directory: /loki/retention
   retention_enabled: true
