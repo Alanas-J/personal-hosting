@@ -25,6 +25,7 @@ common:
   ring:
     kvstore:
       store: inmemory
+  replication_factor: 1 
 
 compactor:
   working_directory: /loki/retention

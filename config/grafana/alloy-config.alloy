@@ -51,5 +51,12 @@ discovery.docker "local_docker_socket" {
 loki.source.docker "local_docker_scrape" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.docker.local_docker_socket.targets
+  labels     = {"log_source" = "local_docker_socket"}
+  forward_to = [loki.process.local_docker_log_process.receiver]
+}
+
+// Adding labels to docker logs.
+loki.process "local_docker_log_process" {
+  stage.docker {}
   forward_to = [loki.write.local_loki_write.receiver]
 }

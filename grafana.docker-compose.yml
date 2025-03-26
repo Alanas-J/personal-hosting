@@ -30,6 +30,8 @@ services:
     volumes:
       - loki_storage:/loki
       - ./config/grafana/loki-config.yml:/etc/loki/config.yaml:ro
+    ports:
+      - 3100:3100
     networks:
       - grafana
 
@@ -41,5 +43,7 @@ services:
       # - /var/log/:var/log/host_logs:ro # I'll enable scanning later. 
     ports:
       - 12345:12345
+    networks:
+      - grafana
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy 
   
