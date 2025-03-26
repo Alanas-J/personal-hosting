@@ -33,10 +33,13 @@ services:
     networks:
       - grafana
 
-  # promtail:
-  #   image: grafana/promtail:latest
-  #   # volumes:
-  #   #  - /var/log:/var/log
-  #   command: -config.file=/etc/promtail/config.yml
-  #   networks:
-  #     - grafana
+  alloy:
+    image: grafana/alloy:latest
+    volumes:
+      - ./config/grafana/alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # - /var/log/:var/log/host_logs:ro # I'll enable scanning later. 
+    ports:
+      - 12345:12345
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy 
+  

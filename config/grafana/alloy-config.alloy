@@ -1,0 +1,55 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// Defining a Loki destination for Alloy to push.
+loki.write "local_loki_write" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+
+    // If HTTP BasicAuth was used:
+    // basic_auth {
+    //  username = "admin"
+    //  password = "admin"
+    // }
+  }
+}
+
+// =================================== File Log Collection ==================================
+// Defining a file scan pattern for logs in /var/log.
+local.file_match "local_files" {
+    path_targets = [{"__path__" = "/var/log/*.log"}]
+    sync_period = "5s"
+}
+
+// Defining a log scrape of the scanned log files.
+loki.source.file "local_log_scrape" {
+  targets    = local.file_match.local_files.targets
+  forward_to = [loki.process.before_send_process.receiver]
+  tail_from_end = true
+}
+
+// Processing step that currently does nothing, can think of as 'middleware'.
+loki.process "before_send_process" {
+  // Can filter here.
+  //stage.drop {
+  //    source = ""
+  //    expression  = ".*Connection closed by authenticating user root"
+  //    drop_counter_reason = "noisy"
+  // }
+  forward_to = [loki.write.local_loki_write.receiver]
+}
+
+// ================================= Docker Log Collection ===================================
+// Search for Docker containers in socket.
+discovery.docker "local_docker_socket" {
+  host = "unix:///var/run/docker.sock" 
+}
+
+// Defining a log scrape of the docker socket output.
+loki.source.docker "local_docker_scrape" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.local_docker_socket.targets
+  forward_to = [loki.write.local_loki_write.receiver]
+}
