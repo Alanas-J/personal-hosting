@@ -19,25 +19,34 @@ loki.write "local_loki_write" {
 // =================================== File Log Collection ==================================
 // Defining a file scan pattern for logs in /var/log.
 local.file_match "local_files" {
-    path_targets = [{"__path__" = "/var/log/*.log"}]
+    path_targets = [{"__path__" = "/var/log/**/*.log"}]
     sync_period = "5s"
+}
+
+// Adding path label to file targets
+discovery.relabel "local_files_labelled" {
+  targets    = local.file_match.local_files.targets
+
+  rule {
+    source_labels = ["__path__"]
+    target_label  = "filename"
+  }
 }
 
 // Defining a log scrape of the scanned log files.
 loki.source.file "local_log_scrape" {
-  targets    = local.file_match.local_files.targets
-  forward_to = [loki.process.before_send_process.receiver]
+  targets    = discovery.relabel.local_files_labelled.output
+  forward_to = [loki.process.local_pre_process.receiver]
   tail_from_end = true
 }
 
-// Processing step that currently does nothing, can think of as 'middleware'.
-loki.process "before_send_process" {
-  // Can filter here.
-  //stage.drop {
-  //    source = ""
-  //    expression  = ".*Connection closed by authenticating user root"
-  //    drop_counter_reason = "noisy"
-  // }
+// Processing step / middleware before sending logs to Loki. Currently adds a src label. 
+loki.process "local_pre_process" {
+  stage.static_labels {
+      values = {
+        log_source = "file_logs",
+      }
+   }
   forward_to = [loki.write.local_loki_write.receiver]
 }
 
@@ -47,15 +56,25 @@ discovery.docker "local_docker_socket" {
   host = "unix:///var/run/docker.sock" 
 }
 
+// Extracting target metadata for log labelling
+discovery.relabel "local_docker_target" {
+  targets = discovery.docker.local_docker_socket.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "container"
+  }
+}
+
 // Defining a log scrape of the docker socket output.
 loki.source.docker "local_docker_scrape" {
   host       = "unix:///var/run/docker.sock"
-  targets    = discovery.docker.local_docker_socket.targets
-  labels     = {"log_source" = "local_docker_socket"}
+  targets    = discovery.relabel.local_docker_target.output
+  labels     = {"log_source" = "docker_socket"}
   forward_to = [loki.process.local_docker_log_process.receiver]
 }
 
-// Adding labels to docker logs.
+// Pre-processing before docker log send.
 loki.process "local_docker_log_process" {
   stage.docker {}
   forward_to = [loki.write.local_loki_write.receiver]
