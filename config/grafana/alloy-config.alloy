@@ -79,3 +79,6 @@ loki.process "local_docker_log_process" {
   stage.docker {}
   forward_to = [loki.write.local_loki_write.receiver]
 }
+
+// ================================= Metric Collection ===================================
+

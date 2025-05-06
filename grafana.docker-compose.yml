@@ -6,6 +6,7 @@ networks:
 volumes:
   grafana_dashboard_storage: {}
   loki_storage: {}
+  prometheus_storage: {}
 
 services:
   grafana:
@@ -46,4 +47,17 @@ services:
     networks:
       - grafana
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy 
-  
+ 
+  prometheus:
+   image: prom/prometheus:v2.47.0
+   command:
+     - --web.enable-remote-write-receiver
+     - --config.file=/etc/prometheus/prometheus.yml
+   volumes:
+      - ./config/grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_storage:/prometheus
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+   ports:
+     - "9090:9090"
+   networks:
+    - grafana  
