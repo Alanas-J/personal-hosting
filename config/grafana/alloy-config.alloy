@@ -1,10 +1,12 @@
 logging {
   level  = "info"
+  // The standard to log in space separated key=value pairs. https://brandur.org/logfmt
   format = "logfmt"
 }
 
 // Grafana Loki write destination (Log Database) 
 loki.write "local_loki_write" {
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write/
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
     // If HTTP BasicAuth was used:
@@ -16,6 +18,7 @@ loki.write "local_loki_write" {
 }
 
 # Prometheus write destination (Metrics Database)
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.remote_write/
 prometheus.remote_write "local_prometheus_write" {
     endpoint {
         url = "http://prometheus:9090/api/v1/write"
