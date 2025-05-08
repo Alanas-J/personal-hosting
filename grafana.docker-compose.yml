@@ -42,7 +42,11 @@ services:
     volumes:
       - ./config/grafana/alloy-config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      # - /var/log/:var/log/host_logs:ro # I'll enable scanning later. 
+      # - /var/log/:var/log/host_logs:ro # I'll enable scanning later.
+      # Host volumes needed for node_exporter to provide all metrics:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
     ports:
       - 12345:12345
     networks:

@@ -94,12 +94,16 @@ loki.process "local_docker_log_process" {
 // ================================= Metric Collection ===================================
 
 // node_exporter via alloy
-prometheus.exporter.unix "local_system_metrics" { }
+prometheus.exporter.unix "local_system_metrics" {
+  procfs_path = "/host/proc"
+  rootfs_path  = "/host/sys"
+  sysfs_path = "/rootfs"
+}
 
 prometheus.scrape "local_system_metrics_scrape" {
   targets         = prometheus.exporter.unix.local_system_metrics.targets
   forward_to      = [prometheus.remote_write.local_prometheus_write.receiver]
-  scrape_interval = "60s"
+  scrape_interval = "15s"
 }
 
 
