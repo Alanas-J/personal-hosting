@@ -16,6 +16,17 @@ loki.write "local_loki_write" {
   }
 }
 
+prometheus.remote_write "local_prometheus_write" {
+    endpoint {
+        url = "http://prometheus:9090/api/v1/write"
+
+        // basic_auth {
+        //   username = "admin"
+        //   password = "admin"
+        // }
+    }
+}
+
 // =================================== File Log Collection ==================================
 // Defining a file scan pattern for logs in /var/log.
 local.file_match "local_files" {
@@ -83,37 +94,17 @@ loki.process "local_docker_log_process" {
 // ================================= Metric Collection ===================================
 
 // node_exporter via alloy
-prometheus.exporter.unix "local_system" { }
+prometheus.exporter.unix "local_system_metrics" { }
 
-prometheus.scrape "scrape_metrics" {
-  targets         = prometheus.exporter.unix.local_system.targets
-  forward_to      = [prometheus.relabel.filter_metrics.receiver]
-  scrape_interval = "10s"
+prometheus.scrape "local_system_metrics_scrape" {
+  targets         = prometheus.exporter.unix.local_system_metrics.targets
+  forward_to      = [prometheus.remote_write.local_prometheus_write.receiver]
+  scrape_interval = "60s"
 }
 
-prometheus.relabel "filter_metrics" {
-  rule {
-    action        = "drop"
-    source_labels = ["env"]
-    regex         = "dev"
-  }
-
-  forward_to = [prometheus.remote_write.metrics_service.receiver]
-}
-
-prometheus.remote_write "metrics_service" {
-    endpoint {
-        url = "http://localhost:9090/api/v1/write"
-
-        // basic_auth {
-        //   username = "admin"
-        //   password = "admin"
-        // }
-    }
-}
 
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.cadvisor/
-prometheus.exporter.cadvisor "example" {
+prometheus.exporter.cadvisor "local_docker_metrics" {
   docker_host = "unix:///var/run/docker.sock"
 
   storage_duration = "5m"
@@ -121,17 +112,6 @@ prometheus.exporter.cadvisor "example" {
 
 // Configure a prometheus.scrape component to collect cadvisor metrics.
 prometheus.scrape "scraper" {
-  targets    = prometheus.exporter.cadvisor.example.targets
-  forward_to = [ prometheus.remote_write.demo.receiver ]
-}
-
-prometheus.remote_write "demo" {
-  endpoint {
-    url = "<PROMETHEUS_REMOTE_WRITE_URL>"
-
-    basic_auth {
-      username = "<USERNAME>"
-      password = "<PASSWORD>"
-    }
-  }
+  targets    = prometheus.exporter.cadvisor.local_docker_metrics.targets
+  forward_to = [ prometheus.remote_write.local_prometheus_write.receiver ]
 }
