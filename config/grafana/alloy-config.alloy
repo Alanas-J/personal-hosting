@@ -9,11 +9,6 @@ loki.write "local_loki_write" {
 // https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write/
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
-    // If HTTP BasicAuth was used:
-    // basic_auth {
-    //  username = "admin"
-    //  password = "admin"
-    // }
   }
 }
 
@@ -22,10 +17,6 @@ loki.write "local_loki_write" {
 prometheus.remote_write "local_prometheus_write" {
     endpoint {
         url = "http://prometheus:9090/api/v1/write"
-        // basic_auth {
-        //   username = "admin"
-        //   password = "admin"
-        // }
     }
 }
 

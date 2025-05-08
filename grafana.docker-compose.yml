@@ -1,8 +1,12 @@
+# A minimal stack for getting Grafana Log and Metric monitoring in a docker-compose deployment.
+# TODO: Need to front the grafana stack with auth / route through Traefik + remove port exposing
+# TODO: Look into Grafana/loki/prometheus config further
 
 networks:
-  grafana: {}
+  grafana: {
+    external: true
+  }
 
-# Persistent volumes outside of containers managed by docker engine.
 volumes:
   grafana_dashboard_storage: {}
   loki_storage: {}
@@ -24,6 +28,7 @@ services:
       - "3000:3000"
     networks:
       - grafana
+    restart: unless-stopped
 
   loki:
     image: grafana/loki:latest
@@ -35,14 +40,17 @@ services:
       - 3100:3100
     networks:
       - grafana
+    restart: unless-stopped
 
   alloy:
     image: grafana/alloy:latest
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     volumes:
       - ./config/grafana/alloy-config.alloy:/etc/alloy/config.alloy:ro
+      # Host system log dir for scraping.
+      - /var/log/:var/log/host_logs:ro
+      # Docker socket, for cadvisor metrics and to scrape docker logs.
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      # - /var/log/:var/log/host_logs:ro # I'll enable scanning later.
       # Host volumes needed for node_exporter to provide all metrics:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -51,16 +59,18 @@ services:
       - 12345:12345
     networks:
       - grafana
+    restart: unless-stopped
 
   prometheus:
-   image: prom/prometheus:v2.47.0
-   command:
-     - --web.enable-remote-write-receiver
-     - --config.file=/etc/prometheus/prometheus.yml
-   volumes:
+    image: prom/prometheus:v2.47.0
+    command:
+      - --web.enable-remote-write-receiver
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
       - ./config/grafana/prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_storage:/prometheus
-   ports:
-     - "9090:9090"
-   networks:
-    - grafana  
+    ports:
+      - "9090:9090"
+    networks:
+    - grafana
+    restart: unless-stopped

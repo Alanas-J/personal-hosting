@@ -1,8 +1,21 @@
+# This is the core essential part of my docker-compose single-node hosting.
+#
+# Traefik is my reverse proxy / the internet entrypoint.
+# Pihole provides local DNS, allowing for local SSL.
+# My custom 'dns-sync' container keeps my local IP synced with Route 53
+
+networks:
+  # Network shared by the core routing/network containers.
+  core: {}
+  # Network for any hosted services.
+  service_network: {}
+  # Network for the Grafana observability stack
+  grafana: {}
+
 
 services:
   traefik:
     image: traefik:v3.3.4
-    container_name: traefik-proxy
     ports:
       # Internet HTTP/S routing entrypoints.
       # I've moved these into far ports are the home router can handle port mapping.
@@ -34,6 +47,10 @@ services:
       - traefik.http.routers.traefik-dashboard.service=api@internal
       - traefik.http.routers.traefik-dashboard.middlewares=traefik-auth
     restart: unless-stopped
+    networks:
+      - core
+      - grafana
+      - service_network
 
   dns-sync:
     build:
@@ -46,6 +63,8 @@ services:
       - AWS_HOSTED_ZONE_ID=${AWS_HOSTED_ZONE_ID}
       - DOMAIN_NAME=raspi.alanas-j.site.
     restart: unless-stopped
+    networks:
+      - core
 
   pihole:
     container_name: pihole
@@ -75,32 +94,5 @@ services:
       # Local HTTPS (passthrough needs to use a tcp router + this is defined in yml config.)
       - traefik.tcp.services.pihole-https.loadbalancer.server.port=443
     restart: unless-stopped
-
-  node-app:
-    build:
-      context: https://Alanas-J:${GITHUB_TOKEN}@github.com/Alanas-J/personal-homepage-node-server.git#main
-      dockerfile: Dockerfile
-    container_name: node-app
-    labels:
-      - traefik.enable=true
-      - traefik.http.middlewares.prefix-stripper.stripprefix.prefixes=/node
-      # Local HTTP
-      - traefik.http.routers.local-node-http-router.entrypoints=local-http-entry
-      - traefik.http.routers.local-node-http-router.rule=PathPrefix(`/node`)
-      - traefik.http.routers.local-node-http-router.middlewares=prefix-stripper
-      # Local HTTPS
-      - traefik.http.routers.local-node-https-router.tls=true
-      - traefik.http.routers.local-node-https-router.entrypoints=local-https-entry
-      - traefik.http.routers.local-node-https-router.rule=PathPrefix(`/node`)
-      - traefik.http.routers.local-node-https-router.middlewares=prefix-stripper
-      # Internet HTTP
-      - traefik.http.routers.internet-node-http-router.entrypoints=internet-http-entry
-      - traefik.http.routers.internet-node-http-router.rule=PathPrefix(`/node`)
-      - traefik.http.routers.internet-node-http-router.middlewares=prefix-stripper
-      # Internet HTTPS
-      - traefik.http.routers.internet-node-https-router.tls=true
-      - traefik.http.routers.internet-node-https-router.tls.certresolver=raspiresolver
-      - traefik.http.routers.internet-node-https-router.entrypoints=internet-https-entry
-      - traefik.http.routers.internet-node-https-router.rule=Host(`raspi.alanas-j.site`) && PathPrefix(`/node`)
-      - traefik.http.routers.internet-node-https-router.middlewares=prefix-stripper
-    restart: unless-stopped
+    networks:
+      - core
