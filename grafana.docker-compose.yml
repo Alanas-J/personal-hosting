@@ -10,6 +10,7 @@ volumes:
 
 services:
   grafana:
+    image: grafana/grafana:latest
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -19,9 +20,8 @@ services:
      - ./config/grafana/grafana.ini:/usr/local/etc/grafana/grafana.ini:ro
      - ./config/grafana/grafana-data-sources.yml:/etc/grafana/provisioning/datasources/ds.yaml:ro
      - grafana_dashboard_storage:/var/lib/grafana
-    image: grafana/grafana:latest
     ports:
-      - "3000:3000"  # Will need to either enable TLS or disable / route via traefik.
+      - "3000:3000"
     networks:
       - grafana
 
@@ -38,6 +38,7 @@ services:
 
   alloy:
     image: grafana/alloy:latest
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     volumes:
       - ./config/grafana/alloy-config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -46,17 +47,15 @@ services:
       - 12345:12345
     networks:
       - grafana
-    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy 
- 
+
   prometheus:
    image: prom/prometheus:v2.47.0
    command:
      - --web.enable-remote-write-receiver
      - --config.file=/etc/prometheus/prometheus.yml
    volumes:
-      - ./config/grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/grafana/prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_storage:/prometheus
-      - /var/run/docker.sock:/var/run/docker.sock:ro
    ports:
      - "9090:9090"
    networks:

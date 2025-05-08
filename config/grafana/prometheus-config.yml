@@ -1,0 +1,16 @@
+global:
+  scrape_interval:    15s 
+
+# This is where we define pull configs
+# Currently set up to make prometheus pull from itself
+# Grafana alloy performs pushes to prometheus instead of exposing a pull endpoint.
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+
+# I haven't looked into the use of rules.
+rule_files:
+  # - "first.rules"
+  # - "second.rules"
