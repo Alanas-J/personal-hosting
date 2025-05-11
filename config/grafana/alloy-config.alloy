@@ -1,0 +1,121 @@
+logging {
+  level  = "info"
+  // The standard to log in space separated key=value pairs. https://brandur.org/logfmt
+  format = "logfmt"
+}
+
+// Grafana Loki write destination (Log Database) 
+loki.write "local_loki_write" {
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.write/
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// Prometheus write destination (Metrics Database)
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.remote_write/
+prometheus.remote_write "local_prometheus_write" {
+    endpoint {
+        url = "http://prometheus:9090/api/v1/write"
+    }
+}
+
+// =================================== File Log Collection ==================================
+// Defining a file scan pattern for logs in /var/log.
+// https://grafana.com/docs/alloy/latest/reference/components/local/local.file_match/
+local.file_match "local_files" {
+    path_targets = [{"__path__" = "/var/log/**/*.log"}]
+    sync_period = "5s"
+}
+
+// Adding path label to file targets
+// https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.relabel/
+discovery.relabel "local_files_labelled" {
+  targets    = local.file_match.local_files.targets
+  rule {
+    source_labels = ["__path__"]
+    target_label  = "filename"
+  }
+}
+
+// Defining a log scrape of the scanned log files.
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file/
+loki.source.file "local_log_scrape" {
+  targets    = discovery.relabel.local_files_labelled.output
+  forward_to = [loki.process.local_pre_process.receiver]
+  tail_from_end = true
+}
+
+// Processing step / middleware before sending logs to Loki. Currently adds a src label. 
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/
+loki.process "local_pre_process" {
+  stage.static_labels {
+      values = {
+        log_source = "file_logs",
+      }
+   }
+  forward_to = [loki.write.local_loki_write.receiver]
+}
+
+// ================================= Docker Log Collection ===================================
+// Search for Docker containers in socket.
+// https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.docker/
+discovery.docker "local_docker_socket" {
+  host = "unix:///var/run/docker.sock" 
+}
+
+// Extracting target metadata for log labelling
+// https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.relabel/
+discovery.relabel "local_docker_target" {
+  targets = discovery.docker.local_docker_socket.targets
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "container"
+  }
+}
+
+// Defining a log scrape of the docker socket output.
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.docker/
+loki.source.docker "local_docker_scrape" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.local_docker_target.output
+  labels     = {"log_source" = "docker_socket"}
+  forward_to = [loki.process.local_docker_log_process.receiver]
+}
+
+// Pre-processing before docker log send.
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/
+loki.process "local_docker_log_process" {
+  stage.docker {}
+  forward_to = [loki.write.local_loki_write.receiver]
+}
+
+// ================================= Metric Collection ===================================
+// Alloy's node_exporter implementation (System Resoure Monitoring)
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.unix/
+prometheus.exporter.unix "local_system_metrics" {
+  // procfs_path = "/host/proc"
+  // sysfs_path = "/host/sys"
+  rootfs_path = "/rootfs"
+}
+
+// node_exporter scraping
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape/
+prometheus.scrape "local_system_metrics_scrape" {
+  targets         = prometheus.exporter.unix.local_system_metrics.targets
+  forward_to      = [prometheus.remote_write.local_prometheus_write.receiver]
+  scrape_interval = "15s"
+}
+
+// Alloy's cadvisor implementation (Docker Engine/Container Monitoring)
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.cadvisor/
+prometheus.exporter.cadvisor "local_docker_metrics" {
+  docker_host = "unix:///var/run/docker.sock"
+}
+
+// cadvisor scraping 
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape/
+prometheus.scrape "local_docker_metrics_scrape" {
+  targets    = prometheus.exporter.cadvisor.local_docker_metrics.targets
+  forward_to = [ prometheus.remote_write.local_prometheus_write.receiver ]
+}
