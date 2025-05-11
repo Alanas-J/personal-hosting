@@ -12,7 +12,7 @@ loki.write "local_loki_write" {
   }
 }
 
-# Prometheus write destination (Metrics Database)
+// Prometheus write destination (Metrics Database)
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.remote_write/
 prometheus.remote_write "local_prometheus_write" {
     endpoint {
@@ -84,7 +84,7 @@ loki.source.docker "local_docker_scrape" {
 }
 
 // Pre-processing before docker log send.
-https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/
+// https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/
 loki.process "local_docker_log_process" {
   stage.docker {}
   forward_to = [loki.write.local_loki_write.receiver]
@@ -94,13 +94,13 @@ loki.process "local_docker_log_process" {
 // Alloy's node_exporter implementation (System Resoure Monitoring)
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.unix/
 prometheus.exporter.unix "local_system_metrics" {
-  procfs_path = "/host/proc"
-  rootfs_path  = "/host/sys"
-  sysfs_path = "/rootfs"
+  // procfs_path = "/host/proc"
+  // sysfs_path = "/host/sys"
+  rootfs_path = "/rootfs"
 }
 
 // node_exporter scraping
-https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape/
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape/
 prometheus.scrape "local_system_metrics_scrape" {
   targets         = prometheus.exporter.unix.local_system_metrics.targets
   forward_to      = [prometheus.remote_write.local_prometheus_write.receiver]
@@ -114,7 +114,7 @@ prometheus.exporter.cadvisor "local_docker_metrics" {
 }
 
 // cadvisor scraping 
-https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape/
+// https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.scrape/
 prometheus.scrape "local_docker_metrics_scrape" {
   targets    = prometheus.exporter.cadvisor.local_docker_metrics.targets
   forward_to = [ prometheus.remote_write.local_prometheus_write.receiver ]
