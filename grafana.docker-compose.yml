@@ -14,7 +14,7 @@ volumes:
 
 services:
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.0.0
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:latest # Couldn't find
     command: -config.file=/etc/loki/config.yaml
     volumes:
       - loki_storage:/loki
@@ -43,7 +43,7 @@ services:
     restart: unless-stopped
 
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.8.3
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     volumes:
       - ./config/grafana/alloy-config.alloy:/etc/alloy/config.alloy:ro
@@ -62,7 +62,7 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:v2.47.0
+    image: prom/prometheus:v3.3.1
     command:
       - --web.enable-remote-write-receiver
       - --config.file=/etc/prometheus/prometheus.yml
