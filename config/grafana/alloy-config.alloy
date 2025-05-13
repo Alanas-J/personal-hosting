@@ -93,10 +93,10 @@ loki.process "local_docker_log_process" {
 // ================================= Metric Collection ===================================
 // Alloy's node_exporter implementation (System Resoure Monitoring)
 // https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.unix/
-prometheus.exporter.unix "local_system_metrics" {
-  // procfs_path = "/host/proc"
-  // sysfs_path = "/host/sys"
+prometheus.exporter.unix "local_system_metrics" { 
   rootfs_path = "/rootfs"
+  procfs_path = "/rootfs/proc" 
+  sysfs_path = "/rootfs/sys"
 }
 
 // node_exporter scraping

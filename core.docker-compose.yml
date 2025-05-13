@@ -50,7 +50,6 @@ services:
     build:
       context: ./containers/route53_dns_sync
       dockerfile: Dockerfile
-    container_name: route53-dns-sync
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
@@ -61,7 +60,6 @@ services:
       - core
 
   pihole:
-    container_name: pihole
     image: pihole/pihole:2025.03.1
     ports:
       # DNS Ports

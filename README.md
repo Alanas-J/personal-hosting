@@ -28,7 +28,7 @@ Restarts and on boot start is handled by Docker itself (Linux docker installs ad
 
 To load the stack for the first time you only need a single command
 ```bash
-docker-compose -f services.docker-compose.yml -f grafana.docker-compose.yml -f core.docker-compose.yml up -d --force-recreate --build
+docker-compose -f services.docker-compose.yml -f grafana.docker-compose.yml -f core.docker-compose.yml up -d --force-recreate --build --remove-orphans
 
 # -d is for detachment from the current terminal session / daemonizing the containers.
 
